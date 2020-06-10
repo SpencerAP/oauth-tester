@@ -1,66 +1,114 @@
 <?php
-// FIXME: hack hack hack! annoying we have to use v3 at all.
-// either build a v4 user/session endpoint or add v3 key to the form.
-require_once 'v3key.php';
 
-define('SCRIPT_URI', 'https://spencerponte.com/test/ps/oauth/');
+require_once 'config.php';
 
-define('PS_URL_BASE', 'https://www.photoshelter.com/');
-define('CIPHER', 'AES-128-CBC');
+global $fv, $pv; // globals for pushing data to the template
 
-global $fv, $pv;
-
+// initial app state: just show the credentials form;
+// `STEP` will get updated to `CALLBACK` by that handler if we're on that step.
+$pv['STEP'] = 'CREDENTIALS';
 $pv['ERROR'] = null;
-$pv['STEP'] = null;
 $pv['SESSION'] = [];
 
-function handleSetCookie($name, $value)
+/**
+ * Simple validation that the config file has expected settings
+ *	with non-empty values.
+ *
+ * @return null
+ */
+function configCheck()
 {
+	$required = [
+		'SCRIPT_URI',
+		'PS_URL_BASE',
+		'V3_API_KEY',
+		'TEST_MEDIA_ID',
+		'CIPHER',
+	];
+
+	foreach ($required as $constant) {
+		$value = constant($constant);
+		if (empty($value)) {
+			throw new Exception('config.php missing: ' . $constant);
+		}
+	}
+}
+
+/**
+ * Retrieves a random "seed" to be used to generate a key to encrypt state
+ * data in transit. The seed is stored in a temporary session cookie so that
+ * it will persist across the different stages of OAuth redirects.
+ *
+ * @return string
+ */
+function getSetEncryptionSeed()
+{
+	$seed = $_COOKIE['encryption_seed'] ?? null;
+
+	if (!empty($seed)) {
+		return $seed;
+	}
+
+	$seed = bin2hex(random_bytes(32));
+
 	$scheme = parse_url(SCRIPT_URI, PHP_URL_SCHEME);
 	$path = parse_url(SCRIPT_URI, PHP_URL_PATH);
 	$host = parse_url(SCRIPT_URI, PHP_URL_HOST);
 
+	$name = 'encryption_seed';
 	$expires = 0;
 	$secure = ($scheme === 'https') ? true : false;
 	$httponly = true;
 
+	// set for future requests
 	setcookie(
 		$name,
-		$value,
+		$seed,
 		$expires,
 		$path,
 		$host,
 		$secure,
 		$httponly
 	);
+
+	// set for current request
+	$_COOKIE['encryption_seed'] = $seed;
+
+	return $seed;
 }
 
-function getBaseUrl()
-{
-	$baseUrl = $_COOKIE['base_url'] ?? PS_URL_BASE;
-
-	// make sure it ends in a slash
-	if (substr($baseUrl, -1) !== '/') {
-		$baseUrl .= '/';
-	}
-
-	return $baseUrl;
-}
-
+/**
+ * Encrypt the state data.
+ *
+ * @param string $plaintext the data to encrypt
+ *
+ * @return string Encrypted state data, Base64 encoded.
+ */
 function encryptState($plaintext)
 {
 	$seed = $_COOKIE['encryption_seed'];
+
+	// this would not be good for serious encryption,
+	// but is sufficient just to generate a sufficiently long key
+	// in a reliable way
 	$key = hash_hmac('sha512', $seed, $seed);
 
 	$ivlen = openssl_cipher_iv_length(CIPHER);
 	$iv = openssl_random_pseudo_bytes($ivlen);
 	$ciphertext_raw = openssl_encrypt($plaintext, CIPHER, $key, OPENSSL_RAW_DATA, $iv);
-	$iv_and_ciphertext_raw = $iv.$ciphertext_raw;
+	$iv_and_ciphertext_raw = $iv . $ciphertext_raw;
 	$ciphertext = base64_encode($iv_and_ciphertext_raw);
 
 	return $ciphertext;
 }
 
+/**
+ * Decrypt the state data.
+ *
+ * @param string $ciphertext the data to decrypt
+ *
+ * @return string Plaintext state data.
+ */
 function decryptState($ciphertext)
 {
 	$seed = $_COOKIE['encryption_seed'];
@@ -75,68 +123,58 @@ function decryptState($ciphertext)
 	return $plaintext;
 }
 
-function v4Get($apiKey, $endpoint)
-{
-	return v4Request('GET', $apiKey, $endpoint);
-}
-
-function v4Post($apiKey, $endpoint, $data = null)
-{
-	return v4Request('POST', $apiKey, $endpoint, $data);
-}
-
-function v4Request($method, $apiKey, $endpoint, $data = null)
+function v4Get($apiKey, $endpoint, $token = null)
 {
 	$data = $data ?? [];
-	$baseUrl = getBaseUrl() . 'psapi/v4.0/';
+	$baseUrl = PS_URL_BASE . 'psapi/v4.0/';
 	$url = $baseUrl . $endpoint;
 	$headers = [
 		'Accept: application/json',
 		'X-PS-Api-Key: ' . $apiKey,
 	];
 
-	$ch = curl_init();
-
-	switch ($method) {
-	case 'POST':
-		curl_setopt($ch, CURLOPT_POST, true);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-		break;
-	case 'GET':
-	default:
-		// curl defaults to GET
-		break;
-	}
-
-	curl_setopt($ch, CURLOPT_URL, $url);
-	curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-	$response = curl_exec($ch);
-
-	$responseCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-	$curlError = curl_error($ch);
-
-	if ($responseCode !== 200 || $curlError) {
-		throw new Exception('CODE: ' . $responseCode . '; ERROR: ' . $curlError . '; RETURN: ' . $response . '; URL: ' . $url);
-	}
-
-	$response = $response ?? '{}';
-	$response = json_decode($response, true);
-
-	return $response;
+	return apiCall('GET', $url, $data, $headers, $token);
 }
 
-function v3Request($method, $apiKey, $endpoint, $data = null, $token = null)
+function v4Post($apiKey, $endpoint, $data = null, $token = null)
 {
 	$data = $data ?? [];
-	$baseUrl = getBaseUrl() . 'psapi/v3.0/';
+	$baseUrl = PS_URL_BASE . 'psapi/v4.0/';
 	$url = $baseUrl . $endpoint;
 	$headers = [
 		'Accept: application/json',
 		'X-PS-Api-Key: ' . $apiKey,
 	];
 
+	return apiCall('POST', $url, $data, $headers, $token);
+}
+
+function v3Get($apiKey, $endpoint, $token = null)
+{
+	$data = $data ?? [];
+	$baseUrl = PS_URL_BASE . 'psapi/v3.0/';
+	$url = $baseUrl . $endpoint;
+	$headers = [
+		'Accept: application/json',
+		'X-PS-Api-Key: ' . $apiKey,
+	];
+
+	return apiCall('GET', $url, $data, $headers, $token);
+}
+
+/**
+ * Makes generic API calls with Curl.
+ *
+ * @param string $method GET || POST
+ * @param string $url Full URL to call
+ * @param array $data Associate array of form data for POST requests
+ * @param array $headers List of request headers
+ * @param string $token Bearer token
+ *
+ * @return array Decoded response data
+ */
+function apiCall($method, $url, $data, $headers, $token = null)
+{
 	if (!empty($token)) {
 		$headers[] = 'Authorization: Bearer ' . $token;
 	}
@@ -159,12 +197,20 @@ function v3Request($method, $apiKey, $endpoint, $data = null, $token = null)
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
 	$response = curl_exec($ch);
-
 	$responseCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
 	$curlError = curl_error($ch);
 
 	if ($responseCode !== 200 || $curlError) {
-		throw new Exception('CODE: ' . $responseCode . '; ERROR: ' . $curlError . '; RETURN: ' . $response . '; URL: ' . $url);
+		// there are many things we might potentially want to see
+		// when debugging curl API errors
+		$errMsg = sprintf(
+			'CODE: %s; ERROR: %s; RETURN: %s; URL: %s',
+			strval($responseCode),
+			strval($curlError),
+			strval($response),
+			$url
+		);
+		throw new Exception($errMsg);
 	}
 
 	$response = $response ?? '{}';
@@ -173,15 +219,34 @@ function v3Request($method, $apiKey, $endpoint, $data = null, $token = null)
 	return $response;
 }
 
-function handleAuthorize($action, $apiKey, $clientId, $clientSecret)
+/**
+ * Unsets the encryption seed upon form reset.
+ *
+ * @return null
+ */
+function handleReset()
+{
+	// for future requests
+	setcookie('encryption_seed');
+
+	// for current request
+	unset($_COOKIE['encryption_seed']);
+}
+
+/**
+ * Initiates the authorization step of OAuth:
+ *	- Validates user input
+ *	- performs the redirect to the delegation form
+ *
+ * @param string $apiKey V4 API Key
+ * @param string $clientId OAuth Client ID
+ * @param string $clientSecret OAuth Client Secret
+ *
+ * @return null
+ */
+function handleAuthorize($apiKey, $clientId, $clientSecret)
 {
 	global $fv, $pv;
-
-	// allow baseurl override, persist to cookie
-	$baseUrl = $_POST['BASE_URL'] ?? getBaseUrl();
-	handleSetCookie('base_url', $baseUrl);
-	$_COOKIE['base_url'] = $baseUrl;
-	$fv['BASE_URL'] = htmlspecialchars($baseUrl);
 
 	// validate input
 	$requiredFields = [
@@ -197,9 +262,12 @@ function handleAuthorize($action, $apiKey, $clientId, $clientSecret)
 
 	// check API key by sending a test request
 	// we don't actually care about what it returns,
-	// just that ApiKeyInvalidException wasn't thrown
-	v4Get($apiKey, 'media/AD000JRX1b1BmlQ4');
+	// just that ApiKeyInvalidException wasn't thrown.
+	v4Get($apiKey, 'media/' . TEST_MEDIA_ID);
 
+	// we'll need this information later;
+	// to preserve it, we can send it as encrypted "state" data
+	// through the OAuth flow.
 	$state = implode('|', [
 		'photoshelter',
 		$apiKey,
@@ -217,16 +285,25 @@ function handleAuthorize($action, $apiKey, $clientId, $clientSecret)
 	];
 	$queryString = http_build_query($params);
 
-	header('Location: ' . getBaseUrl() . 'psapi/v4.0/oauth/authorize?' . $queryString);
+	header('Location: ' . PS_URL_BASE . 'psapi/v4.0/oauth/authorize?' . $queryString);
 }
 
-function handleState($state)
+/**
+ * Handles the callback redirect from PhotoShelter:
+ *	- validates the state data
+ *	- exchanges the authorization code for a bearer (access) token
+ *	- uses bearer token to make an arbitrary request (user/session)
+ *
+ * @param string $state State data sent in the redirect
+ * @param string $code Authorization code sent in the redirect
+ *
+ * @return null
+ */
+function handleCallback($state, $code)
 {
 	global $fv, $pv;
 
 	$pv['STEP'] = 'CALLBACK';
-
-	$code = $_GET['code'] ?? null;
 
 	$fv['state_raw'] = htmlspecialchars($state);
 	$fv['code'] = htmlspecialchars($code);
@@ -254,12 +331,11 @@ function handleState($state)
 	$accessToken = $fv['access_token'] = $response['access_token'];
 	$refreshToken = $fv['refresh_token'] = $response['refresh_token'];
 
-	// get session
-	$response = v3Request('GET', V3_API_KEY, 'mem/user/session', null, $accessToken);
+	// get user session: proof the bearer token works
+	$response = v3Get(V3_API_KEY, 'mem/user/session', $accessToken);
 	if (!isset($response['status']) || $response['status'] !== 'ok') {
 		throw new Exception('Error getting user session: ' . json_encode($response));
 	}
-
 	$session = $response['data']['Session'];
 
 	$pv['SESSION'] = $session;
@@ -269,7 +345,7 @@ function main()
 {
 	global $fv, $pv;
 
-	$seed = $_POST['ENCRYPTION_SEED'] ?? null;
+	configCheck();
 
 	$action = $_POST['ACTION'] ?? null;
 	$apiKey = $_POST['API_KEY'] ?? null;
@@ -285,40 +361,22 @@ function main()
 	$fv['CLIENT_SECRET'] = htmlspecialchars($clientSecret);
 
 	if ($action === 'reset') {
-		setcookie('encryption_seed');
-		setcookie('base_url');
-		unset($_COOKIE['encryption_seed']);
-		unset($_COOKIE['base_url']);
+		handleReset();
 	}
 
-	$seed = $_COOKIE['encryption_seed'] ?? null;
-	if (empty($seed)) {
-		$seed = bin2hex(random_bytes(32));
-		handleSetCookie('encryption_seed', $seed);
-		$_COOKIE['encryption_seed'] = $seed;
-	}
+	$seed = getSetEncryptionSeed();
 	$pv['ENCRYPTION_SEED'] = $seed;
 
-	$baseUrl = $_COOKIE['base_url'] ?? null;
-	if (empty($baseUrl)) {
-		$baseUrl = PS_URL_BASE;
-		handleSetCookie('base_url', $baseUrl);
-		$_COOKIE['base_url'] = PS_URL_BASE;
-	}
-	$fv['BASE_URL'] = htmlspecialchars($baseUrl);
-
 	if ($action === 'authorize') {
-		return handleAuthorize($action, $apiKey, $clientId, $clientSecret);
+		return handleAuthorize($apiKey, $clientId, $clientSecret);
 	}
 
 	if (!empty($state)) {
-		return handleState($state);
+		return handleCallback($state, $code);
 	}
-
-	$pv['STEP'] = 'CREDENTIALS';
 }
 
-
+// lazy error handling
 try {
 	main();
 } catch (Exception $e) {
@@ -327,10 +385,9 @@ try {
 
 ?>
 
-
 <html lang="en-US">
 <head>
-<title>oauth test</title>
+<title>OAuth Tester</title>
 </head>
 
 <body>
@@ -406,6 +463,7 @@ dd {
 
 <div class="content">
 
+<!-- error reporting -->
 <?php if (!empty($pv['ERROR'])): ?>
 <div class="err-msg">
 <?php echo $pv['ERROR'] ?>
@@ -424,9 +482,6 @@ dd {
 
 <?php if ($pv['STEP'] === 'CREDENTIALS'): ?>
 <form method="post">
-	<label for="BASE_URL">Base URL: </label>
-	<input type="text" name="BASE_URL" id="BASE_URL" size="40" value="<?php echo($fv['BASE_URL'] ?? null) ?>">
-	<br>
 	<label for="API_KEY">v4 API Key: </label>
 	<input type="text" name="API_KEY" id="API_KEY" size="30" value="<?php echo($fv['API_KEY'] ?? null) ?>">
 	<br>
@@ -447,8 +502,8 @@ dd {
 </form>
 
 <!-- debugger -->
-<dl>
 <?php if ($pv['STEP'] === 'CALLBACK'): ?>
+<dl>
 	<dt>Grant Code</dt> <dd><?php echo($fv['code']) ?></dd>
 	<dt>State (encoded)</dt> <dd><?php echo($fv['state_raw']) ?></dd>
 	<dt>State (decoded)</dt> <dd><?php echo($fv['state']) ?></dd>
@@ -459,9 +514,9 @@ dd {
 	<?php foreach($pv['SESSION'] as $name => $value): ?>
 		<dt>Session <?php echo($name) ?></dt> <dd><?php echo($value) ?></dd>
 	<?php endforeach; ?>
-
-<?php endif; ?>
 </dl>
+<?php endif; ?>
+
 
 </div>
 
