@@ -1,6 +1,6 @@
 # OAuth Tester
 
-Simple form for testing PhotoShelter OAuth redirect flow.
+Simple form for testing PhotoShelter's OAuth redirect flow.
 
 No secrets are stored on the server; any private data is encrypted in transit using a random seed stored as a temporary cookie in the user's browser.
 
