@@ -4,6 +4,41 @@ require_once 'config.php';
 
 global $fv, $pv; // globals for pushing data to the template
 
+function main()
+{
+	global $fv, $pv;
+
+	configCheck();
+
+	$action = $_POST['ACTION'] ?? null;
+	$apiKey = $_POST['API_KEY'] ?? null;
+	$clientId = $_POST['CLIENT_ID'] ?? null;
+	$clientSecret = $_POST['CLIENT_SECRET'] ?? null;
+
+	$code = $_GET['code'] ?? null;
+	$state = $_GET['state'] ?? null;
+
+	$fv['ACTION'] = htmlspecialchars($action);
+	$fv['API_KEY'] = htmlspecialchars($apiKey);
+	$fv['CLIENT_ID'] = htmlspecialchars($clientId);
+	$fv['CLIENT_SECRET'] = htmlspecialchars($clientSecret);
+
+	if ($action === 'reset') {
+		handleReset();
+	}
+
+	$seed = getSetEncryptionSeed();
+	$pv['ENCRYPTION_SEED'] = $seed;
+
+	if ($action === 'authorize') {
+		return handleAuthorize($apiKey, $clientId, $clientSecret);
+	}
+
+	if (!empty($state)) {
+		return handleCallback($state, $code);
+	}
+}
+
 /**
  * Simple validation that the config file has expected settings
  *	with non-empty values.
@@ -333,39 +368,4 @@ function handleCallback($state, $code)
 	$session = $response['data']['Session'];
 
 	$pv['SESSION'] = $session;
-}
-
-function main()
-{
-	global $fv, $pv;
-
-	configCheck();
-
-	$action = $_POST['ACTION'] ?? null;
-	$apiKey = $_POST['API_KEY'] ?? null;
-	$clientId = $_POST['CLIENT_ID'] ?? null;
-	$clientSecret = $_POST['CLIENT_SECRET'] ?? null;
-
-	$code = $_GET['code'] ?? null;
-	$state = $_GET['state'] ?? null;
-
-	$fv['ACTION'] = htmlspecialchars($action);
-	$fv['API_KEY'] = htmlspecialchars($apiKey);
-	$fv['CLIENT_ID'] = htmlspecialchars($clientId);
-	$fv['CLIENT_SECRET'] = htmlspecialchars($clientSecret);
-
-	if ($action === 'reset') {
-		handleReset();
-	}
-
-	$seed = getSetEncryptionSeed();
-	$pv['ENCRYPTION_SEED'] = $seed;
-
-	if ($action === 'authorize') {
-		return handleAuthorize($apiKey, $clientId, $clientSecret);
-	}
-
-	if (!empty($state)) {
-		return handleCallback($state, $code);
-	}
 }
