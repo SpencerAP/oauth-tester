@@ -18,7 +18,7 @@ try {
 }
 
 ?>
-
+<!DOCTYPE html>
 <html lang="en-US">
 <head>
 <title>OAuth Tester</title>
@@ -39,6 +39,7 @@ h1 {
 	color: #fff;
 	font-family: sans-serif;
 	padding: 10px 25px;
+	margin-top: 0;
 }
 
 h1, h2, h3 {
