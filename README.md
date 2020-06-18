@@ -2,7 +2,7 @@
 
 Simple form for testing PhotoShelter's OAuth redirect flow.
 
-No secrets are stored on the server; any private data is encrypted in transit using a random seed stored as a temporary cookie in the user's browser.
+No secrets are stored on the server; any potentially private data is encrypted in transit using a random seed stored as a temporary cookie in the user's browser, so as to prevent that data from appearing in access logs.
 
 HTTPS is encouraged.
 
