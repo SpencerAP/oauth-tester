@@ -25,3 +25,7 @@ A webserver with PHP 7.1+
 > Feel free to include language on your site explaining that your application is built on the PhotoShelter platform so people understand your product.
 
 This repository implies no ownership of or license to the PhotoShelter trademark or of PhotoShelter's underlying APIs.
+
+## License
+
+[Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0)
