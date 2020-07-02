@@ -113,9 +113,11 @@ dd {
 <li>Fill out and submit this form</li>
 </ol>
 
+<?php if ($pv['STEP'] === 'CREDENTIALS'): ?>
+
 <p>You'll be redirected to the PhotoShelter OAuth delegation form. After granting access, this script will make an API call to grab session data as a way to verify that the grant was successful.</p>
 
-<?php if ($pv['STEP'] === 'CREDENTIALS'): ?>
+<!-- authorize form -->
 <form method="post">
 	<label for="API_KEY">v4 API Key: </label>
 	<input type="text" name="API_KEY" id="API_KEY" size="30" value="<?php echo($fv['API_KEY'] ?? null) ?>">
@@ -131,13 +133,29 @@ dd {
 </form>
 <?php endif; ?>
 
+<?php if ($pv['STEP'] === 'CALLBACK'): ?>
+
+<p>Click refresh to exchange your refresh token for a new access token.</p>
+
+<!-- refresh form -->
+<form method="post" action="<?php echo SCRIPT_URI ?>">
+	<input type="hidden" name="ACTION" id="REFRESH-ACTION" value="refresh">
+	<input type="hidden" name="REFRESH_TOKEN" value="<?php echo($fv['refresh_token']) ?>">
+	<input type="hidden" name="CLIENT_ID" value="<?php echo($pv['state_decoded']['client_id']) ?>">
+	<input type="hidden" name="CLIENT_SECRET" value="<?php echo($pv['state_decoded']['client_secret']) ?>">
+	<input type="hidden" name="API_KEY" value="<?php echo($pv['api_key']) ?>">
+	<input type="submit" value="Refresh">
+</form>
+<?php endif; ?>
+
+<!-- reset form -->
 <form method="post" action="<?php echo SCRIPT_URI ?>">
 	<input type="hidden" name="ACTION" id="ACTION" value="reset">
 	<input type="submit" value="Reset">
 </form>
 
-<!-- debugger -->
 <?php if ($pv['STEP'] === 'CALLBACK'): ?>
+<!-- debugger -->
 <dl>
 	<dt>Grant Code</dt> <dd><?php echo($fv['code']) ?></dd>
 	<dt>State (encoded)</dt> <dd><?php echo($fv['state_raw']) ?></dd>

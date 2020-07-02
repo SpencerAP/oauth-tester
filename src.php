@@ -14,6 +14,7 @@ function main()
 	$apiKey = $_POST['API_KEY'] ?? null;
 	$clientId = $_POST['CLIENT_ID'] ?? null;
 	$clientSecret = $_POST['CLIENT_SECRET'] ?? null;
+	$refreshToken = $_POST['REFRESH_TOKEN'] ?? null;
 
 	$code = $_GET['code'] ?? null;
 	$state = $_GET['state'] ?? null;
@@ -22,6 +23,7 @@ function main()
 	$fv['API_KEY'] = htmlspecialchars($apiKey);
 	$fv['CLIENT_ID'] = htmlspecialchars($clientId);
 	$fv['CLIENT_SECRET'] = htmlspecialchars($clientSecret);
+	$fv['REFRESH_TOKEN'] = htmlspecialchars($refreshToken);
 
 	if ($action === 'reset') {
 		handleReset();
@@ -29,6 +31,10 @@ function main()
 
 	$seed = getSetEncryptionSeed();
 	$pv['ENCRYPTION_SEED'] = $seed;
+
+	if ($action === 'refresh') {
+		return handleRefresh($apiKey, $clientId, $clientSecret, $refreshToken);
+	}
 
 	if ($action === 'authorize') {
 		return handleAuthorize($apiKey, $clientId, $clientSecret);
@@ -356,11 +362,46 @@ function handleCallback($state, $code)
 		'client_secret' => $clientSecret,
 	];
 
+	// used for the token refresh request
+	$pv['state_decoded'] = $data;
+	$pv['api_key'] = $apiKey;
+
 	$response = v4Post($apiKey, 'oauth/token', $data);
 	$accessToken = $fv['access_token'] = $response['access_token'];
 	$refreshToken = $fv['refresh_token'] = $response['refresh_token'];
 
 	// get user session: proof the bearer token works
+	$response = v3Get(V3_API_KEY, 'mem/user/session', $accessToken);
+	if (!isset($response['status']) || $response['status'] !== 'ok') {
+		throw new Exception('Error getting user session: ' . json_encode($response));
+	}
+	$session = $response['data']['Session'];
+
+	$pv['SESSION'] = $session;
+}
+
+function handleRefresh($apiKey, $clientId, $clientSecret, $refreshToken)
+{
+	global $pv, $fv;
+
+	$data = [
+		'refresh_token' => $refreshToken,
+		'grant_type' => 'refresh_token',
+		'redirect_uri' => SCRIPT_URI,
+		'client_id' => $clientId,
+		'client_secret' => $clientSecret,
+	];
+
+	$pv['STEP'] = 'CALLBACK';
+	$pv['api_key'] = $apiKey;
+	$pv['state_decoded'] = $data;
+
+	$response = v4Post($apiKey, 'oauth/token', $data);
+
+	$accessToken = $fv['access_token'] = $response['access_token'];
+	$refreshToken = $fv['refresh_token'] = $response['refresh_token'];
+
+	// get user session: proof the new bearer token works
 	$response = v3Get(V3_API_KEY, 'mem/user/session', $accessToken);
 	if (!isset($response['status']) || $response['status'] !== 'ok') {
 		throw new Exception('Error getting user session: ' . json_encode($response));
