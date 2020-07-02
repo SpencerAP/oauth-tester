@@ -170,8 +170,7 @@ dd {
 </dl>
 <?php endif; ?>
 
-
-</div>
+<p>Source: <a href="https://github.com/SpencerAP/oauth-tester">SpencerAP/oauth-tester</a></p>
 
 </body>
 </html>
