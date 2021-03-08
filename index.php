@@ -105,6 +105,8 @@ dd {
 </div>
 <?php endif; ?>
 
+<p>Makes requests against: <span class="code"><?php echo PS_URL_BASE ?></span></p>
+
 <h2>Usage</h2>
 
 <ol>
