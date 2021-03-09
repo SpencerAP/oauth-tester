@@ -18,14 +18,6 @@ define('SCRIPT_URI', '');
 define('PS_URL_BASE', 'https://www.photoshelter.com/');
 
 /**
- * @var string V3 API Key.
- *	FIXME!
- *	Once V4 has its own user/session endpoint
- *	we can get rid of this setting and just use V4.
- */
-define('V3_API_KEY', '');
-
-/**
  * @var string Test media ID.
  *	A media-get request is used as a simple check to verify the API key.
  *	Any existing media ID is fine so long as it is publicly accessible.
@@ -41,3 +33,4 @@ define('TEST_MEDIA_ID', '');
  *	https://www.php.net/manual/en/function.openssl-get-cipher-methods.php
  */
 define('CIPHER', 'AES-128-CBC');
+

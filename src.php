@@ -56,7 +56,6 @@ function configCheck()
 	$required = [
 		'SCRIPT_URI',
 		'PS_URL_BASE',
-		'V3_API_KEY',
 		'TEST_MEDIA_ID',
 		'CIPHER',
 	];
@@ -182,19 +181,6 @@ function v4Post($apiKey, $endpoint, $data = null, $token = null)
 	];
 
 	return apiCall('POST', $url, $data, $headers, $token);
-}
-
-function v3Get($apiKey, $endpoint, $token = null)
-{
-	$data = $data ?? [];
-	$baseUrl = PS_URL_BASE . 'psapi/v3.0/';
-	$url = $baseUrl . $endpoint;
-	$headers = [
-		'Accept: application/json',
-		'X-PS-Api-Key: ' . $apiKey,
-	];
-
-	return apiCall('GET', $url, $data, $headers, $token);
 }
 
 /**
@@ -371,11 +357,11 @@ function handleCallback($state, $code)
 	$refreshToken = $fv['refresh_token'] = $response['refresh_token'];
 
 	// get user session: proof the bearer token works
-	$response = v3Get(V3_API_KEY, 'mem/user/session', $accessToken);
-	if (!isset($response['status']) || $response['status'] !== 'ok') {
+	$response = v4Get($apiKey, 'user/session', $accessToken);
+	if (!isset($response['data']['attributes']['user_id'])) {
 		throw new Exception('Error getting user session: ' . json_encode($response));
 	}
-	$session = $response['data']['Session'];
+	$session = $response['data']['attributes'];
 
 	$pv['SESSION'] = $session;
 }
@@ -402,11 +388,11 @@ function handleRefresh($apiKey, $clientId, $clientSecret, $refreshToken)
 	$refreshToken = $fv['refresh_token'] = $response['refresh_token'];
 
 	// get user session: proof the new bearer token works
-	$response = v3Get(V3_API_KEY, 'mem/user/session', $accessToken);
-	if (!isset($response['status']) || $response['status'] !== 'ok') {
+	$response = v4Get($apiKey, 'user/session', $accessToken);
+	if (!isset($response['data']['attributes']['user_id'])) {
 		throw new Exception('Error getting user session: ' . json_encode($response));
 	}
-	$session = $response['data']['Session'];
+	$session = $response['data']['attributes'];
 
 	$pv['SESSION'] = $session;
 }
