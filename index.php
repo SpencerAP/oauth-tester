@@ -159,14 +159,14 @@ dd {
 <?php if ($pv['STEP'] === 'CALLBACK'): ?>
 <!-- debugger -->
 <dl>
-	<dt>Grant Code</dt> <dd><?php echo($fv['code']) ?></dd>
-	<dt>State (encoded)</dt> <dd><?php echo($fv['state_raw']) ?></dd>
-	<dt>State (decoded)</dt> <dd><?php echo($fv['state']) ?></dd>
+	<dt>Grant Code</dt> <dd><?php echo($fv['code'] ?? '') ?></dd>
+	<dt>State (encoded)</dt> <dd><?php echo($fv['state_raw'] ?? '') ?></dd>
+	<dt>State (decoded)</dt> <dd><?php echo($fv['state'] ?? '') ?></dd>
 
-	<dt>Access Token</dt> <dd><?php echo($fv['access_token']) ?></dd>
-	<dt>Refresh Token</dt> <dd><?php echo($fv['refresh_token']) ?></dd>
+	<dt>Access Token</dt> <dd><?php echo($fv['access_token'] ?? '') ?></dd>
+	<dt>Refresh Token</dt> <dd><?php echo($fv['refresh_token'] ?? '') ?></dd>
 
-	<?php foreach($pv['SESSION'] as $name => $value): ?>
+	<?php foreach(($pv['SESSION'] ?? []) as $name => $value): ?>
 		<dt>Session <?php echo($name) ?></dt> <dd><?php echo($value) ?></dd>
 	<?php endforeach; ?>
 </dl>
