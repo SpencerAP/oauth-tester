@@ -18,12 +18,18 @@ function main()
 
 	$code = $_GET['code'] ?? null;
 	$state = $_GET['state'] ?? null;
+	$error = $_GET['error'] ?? null;
+	$errorDescription = $_GET['error_description'] ?? null;
 
 	$fv['ACTION'] = htmlspecialchars($action);
 	$fv['API_KEY'] = htmlspecialchars($apiKey);
 	$fv['CLIENT_ID'] = htmlspecialchars($clientId);
 	$fv['CLIENT_SECRET'] = htmlspecialchars($clientSecret);
 	$fv['REFRESH_TOKEN'] = htmlspecialchars($refreshToken);
+
+	if (!empty($error)) {
+		return handleError($state, $error, $errorDescription);
+	}
 
 	if ($action === 'reset') {
 		handleReset();
@@ -307,6 +313,33 @@ function handleAuthorize($apiKey, $clientId, $clientSecret)
 	$queryString = http_build_query($params);
 
 	header('Location: ' . PS_URL_BASE . 'psapi/v4.0/oauth/authorize?' . $queryString);
+}
+
+/**
+ * Handles access denied error returned by the user when they cancel delegation.
+ *
+ * @param string $state State data sent in the redirect
+ * @param string $error Error name from oauth server
+ * @param string $errorDescription Error description from oauth server
+ *
+ * @return null
+ */
+function handleError($state, $error, $errorDescription)
+{
+	global $pv, $fv;
+
+	$pv['STEP'] = 'ERROR';
+	$fv['error'] = $error;
+	$fv['error_description'] = $errorDescription;
+	$fv['state_raw'] = htmlspecialchars($state);
+
+	$state = decryptState($state);
+	$fv['state_decoded'] = htmlspecialchars($state);
+
+	$stateA = explode('|', $state);
+	if (count($stateA) !== 4) {
+		throw new Exception('Invalid state: ' . $state);
+	}
 }
 
 /**

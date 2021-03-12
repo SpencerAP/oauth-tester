@@ -150,6 +150,20 @@ dd {
 </form>
 <?php endif; ?>
 
+<?php if ($pv['STEP'] === 'ERROR'): ?>
+
+<p>User canceled the authorization request.</p>
+
+<!-- debugger -->
+<dl>
+	<dt>Error</dt> <dd><?php echo($fv['error'] ?? '') ?></dd>
+	<dt>Error description</dt> <dd><?php echo($fv['error_description'] ?? '') ?></dd>
+
+	<dt>State (encoded)</dt> <dd><?php echo($fv['state_raw'] ?? '') ?></dd>
+	<dt>State (decoded)</dt> <dd><?php echo($fv['state_decoded'] ?? '') ?></dd>
+</dl>
+<?php endif; ?>
+
 <!-- reset form -->
 <form method="post" action="<?php echo SCRIPT_URI ?>">
 	<input type="hidden" name="ACTION" id="ACTION" value="reset">
