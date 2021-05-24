@@ -121,14 +121,14 @@ dd {
 
 <!-- authorize form -->
 <form method="post">
-	<label for="API_KEY">v4 API Key: </label>
-	<input type="text" name="API_KEY" id="API_KEY" size="30" value="<?php echo($fv['API_KEY'] ?? null) ?>">
+	<label for="<?php echo $pv['PREFIX'];?>-API_KEY">v4 API Key: </label>
+	<input type="text" name="<?php echo $pv['PREFIX'];?>-API_KEY" id="<?php echo $pv['PREFIX'];?>-API_KEY" size="30" value="<?php echo($fv['API_KEY'] ?? null) ?>">
 	<br>
-	<label for="CLIENT_ID">OAuth Client ID: </label>
-	<input type="text" name="CLIENT_ID" id="CLIENT_ID" size="30" value="<?php echo($fv['CLIENT_ID'] ?? null) ?>">
+	<label for="<?php echo $pv['PREFIX'];?>-CLIENT_ID">OAuth Client ID: </label>
+	<input type="text" name="<?php echo $pv['PREFIX'];?>-CLIENT_ID" id="<?php echo $pv['PREFIX'];?>-CLIENT_ID" size="30" value="<?php echo($fv['CLIENT_ID'] ?? null) ?>">
 	<br>
-	<label for="CLIENT_SECRET">OAuth Client Secret: </label>
-	<input type="text" name="CLIENT_SECRET" id="CLIENT_SECRET" size="40" value="<?php echo($fv['CLIENT_SECRET'] ?? null) ?>">
+	<label for="<?php echo $pv['PREFIX'];?>-CLIENT_SECRET">OAuth Client Secret: </label>
+	<input type="text" name="<?php echo $pv['PREFIX'];?>-CLIENT_SECRET" id="<?php echo $pv['PREFIX'];?>-CLIENT_SECRET" size="40" value="<?php echo($fv['CLIENT_SECRET'] ?? null) ?>">
 	<br>
 	<input type="hidden" name="ACTION" id="ACTION" value="authorize">
 	<input type="submit" value="Authorize">
@@ -143,9 +143,9 @@ dd {
 <form method="post" action="<?php echo SCRIPT_URI ?>">
 	<input type="hidden" name="ACTION" id="REFRESH-ACTION" value="refresh">
 	<input type="hidden" name="REFRESH_TOKEN" value="<?php echo($fv['refresh_token']) ?>">
-	<input type="hidden" name="CLIENT_ID" value="<?php echo($pv['state_decoded']['client_id']) ?>">
-	<input type="hidden" name="CLIENT_SECRET" value="<?php echo($pv['state_decoded']['client_secret']) ?>">
-	<input type="hidden" name="API_KEY" value="<?php echo($pv['api_key']) ?>">
+	<input type="hidden" name="<?php echo $pv['PREFIX'];?>-CLIENT_ID" value="<?php echo($pv['state_decoded']['client_id']) ?>">
+	<input type="hidden" name="<?php echo $pv['PREFIX'];?>-CLIENT_SECRET" value="<?php echo($pv['state_decoded']['client_secret']) ?>">
+	<input type="hidden" name="<?php echo $pv['PREFIX'];?>-API_KEY" value="<?php echo($pv['api_key']) ?>">
 	<input type="submit" value="Refresh">
 </form>
 <?php endif; ?>

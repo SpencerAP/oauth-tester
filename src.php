@@ -10,10 +10,14 @@ function main()
 
 	configCheck();
 
+	// user-fillable form fields are prefixed with a hash of the script URI
+	// to discourage browser autofill across different instances
+	$pv['PREFIX'] = $prefix = substr(sha1(SCRIPT_URI), 0, 6);
+
 	$action = $_POST['ACTION'] ?? null;
-	$apiKey = $_POST['API_KEY'] ?? null;
-	$clientId = $_POST['CLIENT_ID'] ?? null;
-	$clientSecret = $_POST['CLIENT_SECRET'] ?? null;
+	$apiKey = $_POST[$prefix . '-API_KEY'] ?? null;
+	$clientId = $_POST[$prefix . '-CLIENT_ID'] ?? null;
+	$clientSecret = $_POST[$prefix . '-CLIENT_SECRET'] ?? null;
 	$refreshToken = $_POST['REFRESH_TOKEN'] ?? null;
 
 	$code = $_GET['code'] ?? null;
