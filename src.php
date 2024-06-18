@@ -66,7 +66,6 @@ function configCheck()
 	$required = [
 		'SCRIPT_URI',
 		'PS_URL_BASE',
-		'TEST_MEDIA_ID',
 		'CIPHER',
 	];
 
@@ -294,7 +293,7 @@ function handleAuthorize($apiKey, $clientId, $clientSecret)
 	// check API key by sending a test request
 	// we don't actually care about what it returns,
 	// just that ApiKeyInvalidException wasn't thrown.
-	v4Get($apiKey, 'media/' . TEST_MEDIA_ID);
+	v4Get($apiKey, 'version');
 
 	// we'll need this information later;
 	// to preserve it, we can send it as encrypted "state" data

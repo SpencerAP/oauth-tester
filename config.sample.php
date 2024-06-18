@@ -18,13 +18,6 @@ define('SCRIPT_URI', '');
 define('PS_URL_BASE', 'https://www.photoshelter.com/');
 
 /**
- * @var string Test media ID.
- *	A media-get request is used as a simple check to verify the API key.
- *	Any existing media ID is fine so long as it is publicly accessible.
- */
-define('TEST_MEDIA_ID', '');
-
-/**
  * @var string The cipher used to encrypt secret data passed between this script
  *	and PhotoShelter via the `state` parameter. This encryption is done
  *	mainly so that secrets aren't leaked via server access logs or via
