@@ -27,3 +27,23 @@ define('PS_URL_BASE', 'https://www.photoshelter.com/');
  */
 define('CIPHER', 'AES-128-CBC');
 
+/**
+ * @var string A default API key for the form.
+ *	Only use when hosting this app in a private environment,
+ *	you wouldn't want to leak these to just any public visitor.
+ */
+define('API_KEY_DEFAULT', '');
+
+/**
+ * @var string A default OAuth Client ID for the form.
+ *	Only use when hosting this app in a private environment,
+ *	you wouldn't want to leak these to just any public visitor.
+ */
+define('OAUTH_CLIENT_ID_DEFAULT', '');
+
+/**
+ * @var string A default OAuth Client Secret for the form.
+ *	Only use when hosting this app in a private environment,
+ *	you wouldn't want to leak these to just any public visitor.
+ */
+define('OAUTH_CLIENT_SECRET_DEFAULT', '');

@@ -14,10 +14,21 @@ function main()
 	// to discourage browser autofill across different instances
 	$pv['PREFIX'] = $prefix = substr(sha1(SCRIPT_URI), 0, 6);
 
+	// option to provide default values for these fields,
+	// to essentially point an app to a known-good client & environment.
+	// you wouldn't want to do this in a public setting,
+	// but okay for testing behind a private firewall.
+	$apiKeyDefault = defined('API_KEY_DEFAULT')
+		? API_KEY_DEFAULT : '';
+	$clientIdDefault = defined('OAUTH_CLIENT_ID_DEFAULT')
+		? OAUTH_CLIENT_ID_DEFAULT : '';
+	$clientSecretDefault = defined('OAUTH_CLIENT_SECRET_DEFAULT')
+		? OAUTH_CLIENT_SECRET_DEFAULT : '';
+
 	$action = $_POST['ACTION'] ?? null;
-	$apiKey = $_POST[$prefix . '-API_KEY'] ?? null;
-	$clientId = $_POST[$prefix . '-CLIENT_ID'] ?? null;
-	$clientSecret = $_POST[$prefix . '-CLIENT_SECRET'] ?? null;
+	$apiKey = $_POST[$prefix . '-API_KEY'] ?? $apiKeyDefault;
+	$clientId = $_POST[$prefix . '-CLIENT_ID'] ?? $clientIdDefault;
+	$clientSecret = $_POST[$prefix . '-CLIENT_SECRET'] ?? $clientSecretDefault;
 	$refreshToken = $_POST['REFRESH_TOKEN'] ?? null;
 
 	$code = $_GET['code'] ?? null;
